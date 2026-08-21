@@ -11,6 +11,11 @@ export const accidents = [
     injuredCount: 1,
     applicationCount: 1,
     status: '已填写',
+    workflowStatus: '未发起',
+    currentNode: '待发起',
+    ccStatus: '待抄送',
+    hrStatus: '待审批',
+    insuranceHandler: '',
     incident: '2026年5月12日上午，周永鹏在电池回收车间维修电动地牛前轮。维修过程中设备意外滑落，导致其右手中指被挤压受伤。事故发生后，车间立即组织现场核实并安排送医。',
     note: '已完成初步事故记录，申请表可继续补充医疗信息。',
     injuries: [
@@ -31,11 +36,13 @@ export const accidents = [
   {
     id: 'ACC-20240717-002', workshop: '浸出净化车间', name: '设备检修过程中人员受伤事故', level: '一般', type: '物体打击',
     happenedAt: '2024-07-17 16:58', location: '101原料车间', responsible: '无', injuredCount: 0, applicationCount: 0, status: '未填写',
+    workflowStatus: '未发起', currentNode: '待发起', ccStatus: '待抄送', hrStatus: '待审批', insuranceHandler: '',
     incident: '事故记录待补充。', note: '请安环管理员完善事故经过。', injuries: []
   },
   {
     id: 'ACC-20240628-003', workshop: '维修动力车间', name: '维修作业轻微擦伤事件', level: '一般', type: '其他伤害',
     happenedAt: '2024-06-28 09:20', location: '维修动力车间机修间', responsible: '李建国', injuredCount: 1, applicationCount: 0, status: '未填写',
+    workflowStatus: '未发起', currentNode: '待发起', ccStatus: '待抄送', hrStatus: '待审批', insuranceHandler: '',
     incident: '作业人员在设备维护过程中手部擦伤，已进行现场处置。', note: '', injuries: [{ id: 'INJ-002', expanded: true, formStatus: '未填写', name: '李建国', idCard: '', phone: '', entryDate: '', address: '', team: '', position: '机修工', leader: '李建国', leaderPhone: '', injuredAt: '2024-06-28 09:20', diagnosis: '', hospital: '', injuryPart: '', currentCondition: '', brief: '', prevention: '', witness: [{ name: '', phone: '', position: '' }], attachments: [] }]
   }
 ];
