@@ -8,7 +8,7 @@ export const unsafeEventLevels = ['未遂事件', '险肇事件', '不安全事�
 
 export const unsafeEvents = [
   {
-    id: 'UE-20260818-001', summary: '输送线防护罩松动，存在人员卷入风险', department: '电池回收车间', location: '拆解工段2号输送线', eventTime: '2026-08-18 15:20',
+    id: 'UE-20260818-001', summary: '输送线防护罩松动，存在人员卷入风险', department: '电池回收车间', location: '拆解工段2号输送线', eventTime: '2026-08-18 15:20', workflowStatus: '未提交', currentNode: '待提交',
     reportUser: '安环管理员', reportTime: '2026-08-18 15:35:12', eventType: '机械致害', eventLevel: '险肇事件',
     process: '巡检时发现输送线防护罩松动，设备运行过程中存在人员卷入风险，现场立即停止设备并组织检查。',
     emergencyMeasure: '立即停机，设置警戒区域，安排维修人员对防护罩进行紧固，确认安全后恢复运行。',
@@ -16,7 +16,7 @@ export const unsafeEvents = [
     rectification: '1. 完善输送线防护设施点检标准；\n2. 对相关岗位人员开展专项培训；\n3. 增加设备防护设施巡检频次。'
   },
   {
-    id: 'UE-20260812-002', summary: '高处作业平台临时护栏缺失', department: '浸出净化车间', location: '净化工段三楼平台', eventTime: '2026-08-12 09:10',
+    id: 'UE-20260812-002', summary: '高处作业平台临时护栏缺失', department: '浸出净化车间', location: '净化工段三楼平台', eventTime: '2026-08-12 09:10', workflowStatus: '未提交', currentNode: '待提交',
     reportUser: '王海涛', reportTime: '2026-08-12 09:22:46', eventType: '高处坠落', eventLevel: '未遂事件',
     process: '作业人员登高检查管线时发现平台边缘临时护栏缺失，未继续作业并报告现场负责人。',
     emergencyMeasure: '立即停止登高作业，设置警示标识，安排人员恢复临边防护。',

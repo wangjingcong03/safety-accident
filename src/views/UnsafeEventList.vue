@@ -9,6 +9,10 @@
         <div class="filter-item"><span>事件等级：</span><el-select v-model="filters.level" clearable placeholder="全部" size="small"><el-option v-for="item in levels" :key="item" :label="item" :value="item" /></el-select></div>
         <el-button type="primary" size="small" icon="el-icon-search" @click="filterApplied = true">查询</el-button><el-button size="small" icon="el-icon-refresh" @click="resetFilters">重置</el-button>
       </div>
+      <div class="statistics-panel">
+        <div class="stats-grid"><div class="stat-card"><span>事件总数</span><strong>{{ filteredEvents.length }}</strong><small>当前筛选范围</small></div><div class="stat-card"><span>未遂事件</span><strong>{{ levelCounts.未遂事件 }}</strong><small>按事件等级统计</small></div><div class="stat-card"><span>险肇事件</span><strong>{{ levelCounts.险肇事件 }}</strong><small>按事件等级统计</small></div><div class="stat-card"><span>不安全事件</span><strong>{{ levelCounts.不安全事件 }}</strong><small>按事件等级统计</small></div><div class="stat-card"><span>直接经济损失</span><strong>{{ totalLoss }}</strong><small>元</small></div></div>
+        <div class="trend-card"><div class="trend-header"><div><h3>月度变化趋势</h3><span>默认展示近12个月，当前筛选条件同步更新</span></div><i class="el-icon-data-line"></i></div><div class="chart-wrap"><svg viewBox="0 0 760 230" preserveAspectRatio="none" class="trend-chart"><defs><linearGradient id="trendAreaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f08a4b" stop-opacity=".25"/><stop offset="100%" stop-color="#f08a4b" stop-opacity=".02"/></linearGradient></defs><line x1="42" y1="180" x2="735" y2="180" class="axis-line"/><line x1="42" y1="115" x2="735" y2="115" class="grid-line"/><line x1="42" y1="50" x2="735" y2="50" class="grid-line"/><polygon :points="trendAreaPoints" class="trend-area"/><polyline :points="trendPoints" class="trend-line"/><circle v-for="point in trendPointItems" :key="point.key" :cx="point.x" :cy="point.y" r="4" class="trend-point"/><text v-for="point in trendPointItems" :key="point.key + '-label'" :x="point.x" y="207" text-anchor="middle" class="axis-label">{{ point.label }}</text><text x="24" y="184" class="axis-label">0</text><text x="24" y="119" class="axis-label">{{ trendMax > 1 ? Math.ceil(trendMax / 2) : 1 }}</text><text x="24" y="54" class="axis-label">{{ trendMax }}</text></svg></div></div>
+      </div>
       <el-table :data="filteredEvents" stripe class="event-table" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" align="center" />
         <el-table-column type="index" label="序号" width="70" align="center" />
@@ -20,45 +24,44 @@
         <el-table-column prop="eventLevel" label="事件等级" width="120" align="center"><template slot-scope="scope"><el-tag size="mini" :type="scope.row.eventLevel === '未遂事件' ? 'info' : 'warning'">{{ scope.row.eventLevel }}</el-tag></template></el-table-column>
         <el-table-column prop="reportUser" label="上报人" width="100" />
         <el-table-column prop="reportTime" label="上报时间" width="175" />
+        <el-table-column label="审批状态" width="145" align="center"><template slot-scope="scope"><el-tag size="mini" :type="workflowTagType(scope.row)">{{ scope.row.workflowStatus }}</el-tag></template></el-table-column>
         <el-table-column label="操作" fixed="right" width="150" align="center"><template slot-scope="scope"><el-button type="text" @click="editEvent(scope.row)">编辑</el-button><el-button type="text" class="danger-text" @click="removeEvent(scope.row)">删除</el-button></template></el-table-column>
       </el-table>
       <div class="pagination-row"><span>共 {{ filteredEvents.length }} 条</span><el-pagination background layout="prev, pager, next" :total="filteredEvents.length" :page-size="10" /></div>
     </div>
 
-    <el-dialog :title="editingEvent ? '编辑不安全事件' : '新增不安全事件'" :visible.sync="dialogVisible" width="920px" top="6vh">
-      <el-form :model="eventForm" label-position="top" size="small">
-        <div class="form-section-title">事件概况</div>
-        <el-form-item label="事件概况"><el-input v-model="eventForm.summary" placeholder="请输入事件简短描述" /></el-form-item><el-row :gutter="20"><el-col :span="8"><el-form-item label="发生部门/车间" required><el-select v-model="eventForm.department" placeholder="请选择" style="width:100%"><el-option v-for="item in departments" :key="item" :label="item" :value="item" /></el-select></el-form-item></el-col><el-col :span="8"><el-form-item label="发生地点" required><el-input v-model="eventForm.location" placeholder="请输入厂房、工段或设备位号" /></el-form-item></el-col><el-col :span="8"><el-form-item label="发生时间" required><el-date-picker v-model="eventForm.eventTime" type="datetime" format="yyyy-MM-dd HH:mm" value-format="yyyy-MM-dd HH:mm" placeholder="请选择发生时间" style="width:100%" /></el-form-item></el-col><el-col :span="8"><el-form-item label="上报人"><el-input v-model="eventForm.reportUser" placeholder="请输入填报人姓名" /></el-form-item></el-col><el-col :span="8"><el-form-item label="上报时间"><el-input v-model="eventForm.reportTime" disabled /></el-form-item></el-col><el-col :span="8"><el-form-item label="事件类型" required><el-select v-model="eventForm.eventType" filterable placeholder="请选择事件类型" style="width:100%"><el-option v-for="item in eventTypes" :key="item" :label="item" :value="item" /></el-select></el-form-item></el-col><el-col :span="8"><el-form-item label="事件等级" required><el-select v-model="eventForm.eventLevel" placeholder="请选择事件等级" style="width:100%"><el-option v-for="item in levels" :key="item" :label="item" :value="item" /></el-select></el-form-item></el-col></el-row>
-        <div class="form-section-title">事件经过及原因</div>
-        <el-form-item label="事件经过"><el-input v-model="eventForm.process" type="textarea" :rows="4" placeholder="请客观描述事件发生全过程" /></el-form-item><el-form-item label="现场应急处置措施"><el-input v-model="eventForm.emergencyMeasure" type="textarea" :rows="4" placeholder="请输入事发后的处置动作" /></el-form-item><el-form-item label="直接经济损失"><el-input v-model="eventForm.economicLoss" placeholder="请输入金额"><template slot="append">元</template></el-input></el-form-item><el-row :gutter="20"><el-col :span="12"><el-form-item label="直接原因"><el-input v-model="eventForm.directCause" type="textarea" :rows="3" placeholder="请输入直接原因" /></el-form-item></el-col><el-col :span="12"><el-form-item label="间接原因"><el-input v-model="eventForm.indirectCause" type="textarea" :rows="3" placeholder="请输入间接原因" /></el-form-item></el-col></el-row>
-        <div class="form-section-title">整改防范措施</div>
-        <el-form-item label="整改防范措施"><el-input v-model="eventForm.rectification" type="textarea" :rows="4" placeholder="请逐条列明整改防范措施" /></el-form-item>
-      </el-form>
-      <span slot="footer"><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="saveEvent">保存</el-button></span>
-    </el-dialog>
   </div>
 </template>
 
 <script>
 import RecordTabs from '../components/RecordTabs';
-import { unsafeEvents, unsafeEventTypes, unsafeEventLevels } from '../mock/unsafeEvents';
+import { unsafeEvents, unsafeEventLevels } from '../mock/unsafeEvents';
 
 export default {
   name: 'UnsafeEventList',
   components: { RecordTabs },
   data () {
-    return { events: unsafeEvents, eventTypes: unsafeEventTypes, levels: unsafeEventLevels, departments: ['电池回收车间', '浸出净化车间', '维修动力车间', '成品车间'], filters: { department: '', range: [], level: '' }, filterApplied: false, selectedEvents: [], dialogVisible: false, editingEvent: null, eventForm: this.emptyForm() };
+    return { events: unsafeEvents, levels: unsafeEventLevels, departments: ['电池回收车间', '浸出净化车间', '维修动力车间', '成品车间'], filters: { department: '', range: [], level: '' }, filterApplied: false, selectedEvents: [] };
   },
-  computed: { filteredEvents () { return this.events.filter(item => (!this.filters.department || item.department === this.filters.department) && (!this.filters.level || item.eventLevel === this.filters.level)); } },
+  computed: {
+    filteredEvents () { return this.events.filter(item => (!this.filters.department || item.department === this.filters.department) && (!this.filters.level || item.eventLevel === this.filters.level) && this.inSelectedRange(item)); },
+    levelCounts () { return this.levels.reduce((result, level) => { result[level] = this.filteredEvents.filter(item => item.eventLevel === level).length; return result; }, {}); },
+    totalLoss () { return this.filteredEvents.reduce((total, item) => total + (Number(item.economicLoss) || 0), 0); },
+    trendMonths () { const end = this.filters.range && this.filters.range.length === 2 ? new Date(this.filters.range[1] + ' 00:00:00') : new Date(); const start = this.filters.range && this.filters.range.length === 2 ? new Date(this.filters.range[0] + ' 00:00:00') : new Date(end.getFullYear(), end.getMonth() - 11, 1); const months = []; const cursor = new Date(start.getFullYear(), start.getMonth(), 1); const last = new Date(end.getFullYear(), end.getMonth(), 1); while (cursor <= last && months.length < 12) { const month = cursor.getMonth() + 1; months.push({ key: cursor.getFullYear() + '-' + String(month).padStart(2, '0'), label: month + '月' }); cursor.setMonth(cursor.getMonth() + 1); } return months; },
+    trendMax () { return Math.max(1, ...this.trendMonths.map(month => this.filteredEvents.filter(item => item.eventTime.slice(0, 7) === month.key).length)); },
+    trendPointItems () { const width = this.trendMonths.length > 1 ? 693 / (this.trendMonths.length - 1) : 0; return this.trendMonths.map((month, index) => { const value = this.filteredEvents.filter(item => item.eventTime.slice(0, 7) === month.key).length; return { ...month, value, x: 42 + index * width, y: 180 - (value / this.trendMax) * 130 }; }); },
+    trendPoints () { return this.trendPointItems.map(point => point.x + ',' + point.y).join(' '); },
+    trendAreaPoints () { const points = this.trendPointItems; if (!points.length) return '42,180 735,180'; return '42,180 ' + points.map(point => point.x + ',' + point.y).join(' ') + ' ' + points[points.length - 1].x + ',180'; }
+  },
   methods: {
-    emptyForm () { return { summary: '', department: '', location: '', eventTime: '', reportUser: '安环管理员', reportTime: '', eventType: '', eventLevel: '', process: '', emergencyMeasure: '', economicLoss: '', directCause: '', indirectCause: '', rectification: '' }; },
     now () { const date = new Date(); const pad = value => String(value).padStart(2, '0'); return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds()); },
+    inSelectedRange (item) { if (!this.filters.range || this.filters.range.length !== 2) return true; const date = item.eventTime.slice(0, 10); return date >= this.filters.range[0] && date <= this.filters.range[1]; },
     resetFilters () { this.filters = { department: '', range: [], level: '' }; this.filterApplied = false; },
     handleSelectionChange (selection) { this.selectedEvents = selection; },
     exportSelected () { if (!this.selectedEvents.length) return this.$message.warning('请先选择要导出的事件'); const header = ['事件概况', '发生部门/车间', '发生地点', '发生时间', '上报人', '上报时间', '事件类型', '事件等级', '事件经过', '现场应急处置措施', '直接经济损失', '直接原因', '间接原因', '整改防范措施']; const rows = this.selectedEvents.map(item => [item.summary, item.department, item.location, item.eventTime, item.reportUser, item.reportTime, item.eventType, item.eventLevel, item.process, item.emergencyMeasure, item.economicLoss, item.directCause, item.indirectCause, item.rectification]); const csv = [header, ...rows].map(row => row.map(value => '"' + String(value || '').replace(/"/g, '""') + '"').join(',')).join('\n'); const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = '不安全事件记录-' + this.now().replace(/[-: ]/g, '') + '.csv'; anchor.click(); URL.revokeObjectURL(url); this.$message.success('已导出 ' + this.selectedEvents.length + ' 条不安全事件'); },
-    openCreate () { this.editingEvent = null; this.eventForm = this.emptyForm(); this.eventForm.reportTime = this.now(); this.dialogVisible = true; },
-    editEvent (row) { this.editingEvent = row; this.eventForm = { ...row }; this.dialogVisible = true; },
-    saveEvent () { if (!this.eventForm.department || !this.eventForm.location || !this.eventForm.eventTime || !this.eventForm.eventType || !this.eventForm.eventLevel) return this.$message.warning('请先填写事件概况中的必填项'); if (this.editingEvent) { Object.assign(this.editingEvent, this.eventForm); this.$message.success('不安全事件已更新'); } else { this.events.unshift({ ...this.eventForm, id: 'UE-' + Date.now() }); this.$message.success('不安全事件已保存'); } this.dialogVisible = false; },
+    openCreate () { this.$router.push('/unsafe-events/new'); },
+    editEvent (row) { this.$router.push('/unsafe-events/' + row.id); },
+    workflowTagType (row) { return { '未提交': 'info', '待车间主任审批': 'warning', '待安环部确认': 'warning', '已完成': 'success' }[row.workflowStatus] || 'info'; },
     removeEvent (row) { this.$confirm('确定删除这条不安全事件记录吗？', '提示', { type: 'warning' }).then(() => { const index = this.events.indexOf(row); if (index > -1) this.events.splice(index, 1); this.$message.success('已删除'); }).catch(() => {}); }
   }
 };
@@ -73,6 +76,25 @@ export default {
 .filter-item .el-date-editor { width: 250px; }
 .event-table { width: 100%; }
 .pagination-row { height: 64px; display: flex; justify-content: flex-end; align-items: center; gap: 18px; padding: 0 22px; color: #909399; font-size: 12px; }
+.statistics-panel { padding: 18px 22px 20px; border-bottom: 1px solid #ebeef5; background: #fbfcfe; }
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.stat-card { min-height: 88px; padding: 14px 16px; border: 1px solid #e5ebf2; border-radius: 4px; background: #fff; }
+.stat-card span, .stat-card small { display: block; color: #98a2b3; font-size: 12px; }
+.stat-card strong { display: block; margin: 7px 0 3px; color: #273b51; font-size: 24px; font-weight: 600; }
+.trend-card { margin-top: 16px; padding: 16px 18px 8px; border: 1px solid #e5ebf2; border-radius: 4px; background: #fff; }
+.trend-header { display: flex; align-items: center; justify-content: space-between; }
+.trend-header h3 { display: inline-block; margin: 0 10px 4px 0; color: #273b51; font-size: 15px; }
+.trend-header span { color: #a2abb7; font-size: 12px; }
+.trend-header i { color: #0b5a9e; font-size: 20px; }
+.chart-wrap { height: 230px; margin-top: 4px; }
+.trend-chart { width: 100%; height: 230px; overflow: visible; }
+.axis-line { stroke: #dfe6ee; stroke-width: 1; }
+.grid-line { stroke: #edf1f5; stroke-width: 1; stroke-dasharray: 4 4; }
+.trend-area { fill: url(#trendAreaGradient); }
+.trend-line { fill: none; stroke: #ed7b36; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.trend-point { fill: #fff; stroke: #ed7b36; stroke-width: 2; }
+.axis-label { fill: #98a2b3; font-size: 11px; }
 .form-section-title { margin: 8px 0 18px; padding-left: 10px; border-left: 3px solid #0b5a9e; color: #273b51; font-size: 14px; font-weight: 600; }
 .danger-text { color: #f56c6c; }
+@media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
 </style>
